@@ -1,0 +1,13 @@
+# ── Saved projects (personal data — never commit) ─────────────────────────
+projects/
+
+# ── OS / editor noise ──────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ── Windows shortcut / launcher artifacts ─────────────────────────────────
+*.lnk
+
+# ── Logs ───────────────────────────────────────────────────────────────────
+*.log

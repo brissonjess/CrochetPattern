@@ -1,0 +1,807 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Crochet Tapestry Designer</title>
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='10' fill='%237c5cbf'/%3E%3Crect x='8' y='8' width='14' height='14' rx='2' fill='%23fff'/%3E%3Crect x='25' y='8' width='14' height='14' rx='2' fill='%23cba6f7'/%3E%3Crect x='42' y='8' width='14' height='14' rx='2' fill='%23fff'/%3E%3Crect x='8' y='25' width='14' height='14' rx='2' fill='%23cba6f7'/%3E%3Crect x='25' y='25' width='14' height='14' rx='2' fill='%23fff'/%3E%3Crect x='42' y='25' width='14' height='14' rx='2' fill='%23cba6f7'/%3E%3Crect x='8' y='42' width='14' height='14' rx='2' fill='%23fff'/%3E%3Crect x='25' y='42' width='14' height='14' rx='2' fill='%23cba6f7'/%3E%3Crect x='42' y='42' width='14' height='14' rx='2' fill='%23fff'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- ═══════════════════════════════════════════════
+       PROJECT LIST SCREEN
+  ═══════════════════════════════════════════════ -->
+  <div id="screen-projects" class="screen">
+    <header class="app-header">
+      <div class="app-title">
+        <span class="app-logo">🧶</span>
+        <h1>Crochet Tapestry Designer</h1>
+      </div>
+      <button id="btn-new-project" class="btn-primary">+ New Project</button>
+      <button id="btn-change-folder" class="btn-ghost folder-btn" title="Change projects folder">
+        &#128193; <span id="folder-name-display">No folder</span>
+      </button>
+      <button id="btn-dark-mode-projects" class="btn-ghost btn-dark-toggle" title="Toggle dark mode">&#9790;</button>
+    </header>
+    <!-- Folder setup / reconnect banner (shown until a folder is configured) -->
+    <div id="folder-banner" class="folder-banner hidden">
+      <div id="folder-banner-setup" class="hidden">
+        <span class="folder-banner-icon">&#128193;</span>
+        <span class="folder-banner-text">
+          <strong>Choose a projects folder</strong> — your designs will be saved as files
+          you can back up, copy, and keep alongside this app.
+        </span>
+        <button id="btn-setup-folder" class="btn-primary">Choose Folder&hellip;</button>
+      </div>
+      <div id="folder-banner-reconnect" class="hidden">
+        <span class="folder-banner-icon">&#128274;</span>
+        <span class="folder-banner-text">
+          Projects folder needs permission to be accessed this session.
+        </span>
+        <button id="btn-reconnect-folder" class="btn-primary">Reconnect</button>
+      </div>
+    </div>
+
+    <main class="projects-main">
+      <div id="project-list" class="project-grid">
+        <!-- Cards rendered by JS -->
+      </div>
+      <div id="empty-state" class="empty-state hidden">
+        <p>No projects yet.</p>
+        <p>Click <strong>+ New Project</strong> to get started.</p>
+      </div>
+    </main>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════
+       EDITOR SCREEN
+  ═══════════════════════════════════════════════ -->
+  <div id="screen-editor" class="screen hidden">
+    <header class="editor-header">
+      <div class="editor-header-left">
+        <button id="btn-back" class="btn-ghost">&#8592; Projects</button>
+        <span id="project-name-display" class="project-name" title="Click to rename"></span>
+      </div>
+      <div class="editor-header-right">
+        <button id="btn-undo" class="btn-icon-sm" title="Undo (Ctrl+Z)">&#8617;</button>
+        <button id="btn-redo" class="btn-icon-sm" title="Redo (Ctrl+Y)">&#8618;</button>
+        <div class="divider-v"></div>
+        <button id="btn-import-image" class="btn-ghost" title="Import image and convert to pixel grid">Import Image</button>
+        <button id="btn-aspect-ratio" class="btn-ghost" title="Toggle aspect ratio preview">Aspect Ratio</button>
+        <button id="btn-reading-mode" class="btn-ghost" title="Enter reading mode">Reading Mode</button>
+        <button id="btn-pattern" class="btn-ghost" title="View written pattern">Pattern</button>
+        <button id="btn-swatch-calc" class="btn-ghost" title="Swatch calculator — compute gauge and grid size">Swatch Calc</button>
+        <div class="divider-v"></div>
+        <button id="btn-shortcuts" class="btn-ghost" title="Keyboard shortcuts (?)">?</button>
+        <button id="btn-dark-mode-editor" class="btn-ghost btn-dark-toggle" title="Toggle dark mode">&#9790;</button>
+        <button id="btn-save" class="btn-ghost">Save</button>
+        <div class="export-dropdown">
+          <button id="btn-export" class="btn-ghost">Export &#9662;</button>
+          <div id="export-menu" class="dropdown-menu hidden">
+            <button data-export="png">PNG Chart</button>
+            <button data-export="pdf">Print / PDF</button>
+            <button data-export="csv">Row Instructions (.csv)</button>
+            <button data-export="json">Save File (.json)</button>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- Panel tab bar (filled dynamically by app.js) -->
+    <div class="panel-tabs" id="panel-tabs"></div>
+
+    <div class="editor-body">
+      <!-- Toolbar -->
+      <div class="toolbar" id="toolbar">
+        <button class="tool-btn active" data-tool="pencil" title="Pencil (P)">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
+            <path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a1 1 0 0 0 0-1.41l-2.34-2.34a1 1 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/>
+          </svg>
+        </button>
+        <button class="tool-btn" data-tool="eraser" title="Eraser (E)">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
+            <path d="M15.14 3 21 8.86 8.86 21H3v-5.86L15.14 3zm0 2.83L5 15.97V19h3.03L18.17 8.86l-3.03-3.03z"/>
+          </svg>
+        </button>
+        <button class="tool-btn" data-tool="fill" title="Fill Bucket (B)">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
+            <path d="M16.56 8.94 7.62 0 6.21 1.41l2.38 2.38-5.15 5.15a1.49 1.49 0 0 0 0 2.12l5.5 5.5c.29.29.68.44 1.06.44s.77-.15 1.06-.44l5.5-5.5c.59-.58.59-1.53 0-2.12zM5.21 10 10 5.21 14.79 10H5.21zM19 11.5s-2 2.17-2 3.5c0 1.1.9 2 2 2s2-.9 2-2c0-1.33-2-3.5-2-3.5z"/>
+          </svg>
+        </button>
+        <button class="tool-btn" data-tool="eyedropper" title="Eyedropper (I)">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
+            <path d="M20.71 5.63l-2.34-2.34a1 1 0 0 0-1.41 0l-3.12 3.12-1.41-1.42-1.42 1.42 1.41 1.41-6.6 6.6A2 2 0 0 0 5 16v3h3a2 2 0 0 0 1.42-.59l6.6-6.6 1.41 1.42 1.42-1.42-1.42-1.41 3.12-3.12a1 1 0 0 0 .16-1.65zM8 17H7v-1l6.6-6.6 1 1L8 17z"/>
+          </svg>
+        </button>
+        <button class="tool-btn" data-tool="select" title="Select Rectangle (S)">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
+            <path d="M3 5h2V3a2 2 0 0 0-2 2zm0 8h2v-2H3v2zm4 8h2v-2H7v2zM3 9h2V7H3v2zm10-6h-2v2h2V3zm6 0v2h2a2 2 0 0 0-2-2zM5 21v-2H3a2 2 0 0 0 2 2zm-2-4h2v-2H3v2zM9 3H7v2h2V3zm2 18h2v-2h-2v2zm8-8h2v-2h-2v2zm0 8a2 2 0 0 0 2-2h-2v2zm0-12h2V7h-2v2zm0 8h2v-2h-2v2zm-4 4h2v-2h-2v2zm0-16h2V3h-2v2z"/>
+          </svg>
+        </button>
+        <div class="toolbar-sep"></div>
+        <button class="tool-btn" id="btn-flip-h" title="Flip Horizontal (H)">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
+            <path d="M15 21h2v-2h-2v2zm4-12h2V7h-2v2zM3 5h18v2H3zm16 14h2v-2h-2v2zM1 7v10l4-5-4-5zm14-2h2V3h-2v2zm4 12h2v-2h-2v2zm-4 4h2v-2h-2v2zm-4 2v-4H9l3-8 3 8h-2v4h-2zm4-12h2V7h-2v2z"/>
+          </svg>
+        </button>
+        <button class="tool-btn" id="btn-flip-v" title="Flip Vertical (V)">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
+            <path d="M3 15v2h2v-2H3zm0-4h2v-2H3v2zm2 8H3a2 2 0 0 0 2 2v-2zm12 2v-2h-2v2h2zm4-8h-2v2h2v-2zm0-8H3v2h18V3zm0 4h-2v2h2V7zm-4-4h-2v2h2V3zm4 12h-2v2h2v-2zM7 21v-2H5v2h2zm4-2H9l8-3-8-3v2H7v-2H5l8 3-8 3h2v2h2v-2h2zm2 2h2v-2h-2v2z"/>
+          </svg>
+        </button>
+        <button class="tool-btn" id="btn-crop" title="Crop to Selection" disabled>
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
+            <path d="M17 15h2V7c0-1.1-.9-2-2-2H9v2h8v8zM7 17V1H5v4H1v2h4v10c0 1.1.9 2 2 2h10v4h2v-4h4v-2H7z"/>
+          </svg>
+        </button>
+        <button class="tool-btn" id="btn-expand-canvas" title="Expand canvas — add rows or columns to a side">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
+            <path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 14H4V6h16v12zM9 12H7v2H5v-2H3v-2h2V8h2v2h2v2zm3 2c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1zm0-4c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1zm4 4c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1zm0-4c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1z"/>
+          </svg>
+        </button>
+        <div class="toolbar-sep"></div>
+        <button class="tool-btn" id="btn-shape-edit" title="Edit Garment Shape">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
+            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14H9V8h2v8zm4 0h-2V8h2v8z"/>
+          </svg>
+        </button>
+        <button class="tool-btn" id="btn-layout-view" title="Layout View — see all panels">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
+            <path d="M3 3h8v8H3zm0 10h8v8H3zm10-10h8v8h-8zm0 10h8v8h-8z"/>
+          </svg>
+        </button>
+        <button class="tool-btn" id="btn-repeat-preview" title="Pattern Repeat Preview">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
+            <path d="M4 4h6v6H4zm0 10h6v6H4zm10-10h6v6h-6zm0 10h6v6h-6z"/>
+          </svg>
+        </button>
+        <div class="toolbar-sep"></div>
+        <button class="tool-btn" id="btn-zoom-in" title="Zoom In (+)">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
+            <path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14zm.5-7H9v2H7v1h2v2h1v-2h2V9h-2V7z"/>
+          </svg>
+        </button>
+        <button class="tool-btn" id="btn-zoom-out" title="Zoom Out (-)">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
+            <path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14zM7 9h5v1H7z"/>
+          </svg>
+        </button>
+        <button class="tool-btn" id="btn-zoom-reset" title="Fit to Screen (0)">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
+            <path d="M15 3l2.3 2.3-2.89 2.87 1.42 1.42L18.7 6.7 21 9V3h-6zM3 9l2.3-2.3 2.87 2.89 1.42-1.42L6.7 5.3 9 3H3v6zm6 12l-2.3-2.3 2.89-2.87-1.42-1.42L5.3 17.3 3 15v6h6zm12-6l-2.3 2.3-2.87-2.89-1.42 1.42 2.89 2.87L15 21h6v-6z"/>
+          </svg>
+        </button>
+      </div>
+
+      <!-- Canvas -->
+      <div class="canvas-container" id="canvas-container">
+        <canvas id="grid-canvas"></canvas>
+
+        <!-- Reading mode overlay bar -->
+        <div id="reading-mode-bar" class="reading-mode-bar hidden">
+          <button id="btn-rm-prev" title="Previous row (↑)">&#9650;</button>
+          <span id="rm-status">Row 1 of 1</span>
+          <button id="btn-rm-next" title="Next row (↓)">&#9660;</button>
+          <div class="rm-sep"></div>
+          <button id="btn-rm-exit">&#10005; Exit</button>
+        </div>
+      </div>
+
+      <!-- Palette Panel -->
+      <div class="palette-panel" id="palette-panel">
+        <!-- Rendered by palette.js -->
+      </div>
+    </div>
+
+    <footer class="status-bar">
+      <span id="status-grid-size"></span>
+      <span class="status-sep">|</span>
+      <span id="status-zoom"></span>
+      <span class="status-sep">|</span>
+      <span id="status-technique"></span>
+      <span class="status-sep">|</span>
+      <span id="status-cursor">—</span>
+    </footer>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════
+       MODAL: New Project
+  ═══════════════════════════════════════════════ -->
+  <div id="modal-new-project" class="modal-overlay hidden">
+    <div class="modal-box modal-box-new-project">
+      <h2>New Project</h2>
+      <div class="form-group">
+        <label for="new-project-name">Project Name</label>
+        <input type="text" id="new-project-name" value="My Tapestry" maxlength="80">
+      </div>
+      <div class="form-group">
+        <label for="new-project-technique">Technique</label>
+        <select id="new-project-technique">
+          <option value="tapestry_sc">Tapestry SC (Single Crochet)</option>
+          <option value="graphghan">Graphghan</option>
+          <option value="c2c">C2C (Corner to Corner)</option>
+          <option value="mosaic">Mosaic</option>
+        </select>
+      </div>
+
+      <h3 style="margin:16px 0 8px">Garment Type</h3>
+      <div id="garment-picker" class="garment-picker">
+        <!-- cards rendered by JS -->
+      </div>
+
+      <!-- Shown only when Blank Canvas is selected -->
+      <div id="blank-size-fields" style="margin-top:12px">
+        <!-- Unit selector -->
+        <div class="form-row" style="margin-bottom:10px">
+          <div class="form-group" style="flex:1">
+            <label for="new-project-unit">Size unit</label>
+            <select id="new-project-unit">
+              <option value="stitches">Stitches / rows</option>
+              <option value="inches">Inches</option>
+              <option value="cm">Centimetres</option>
+            </select>
+          </div>
+        </div>
+        <!-- Gauge row — shown only when inches or cm is selected -->
+        <div id="size-gauge-row" class="form-row hidden" style="margin-bottom:10px">
+          <div class="form-group">
+            <label for="np-gauge-st">Gauge: stitches per inch</label>
+            <input type="number" id="np-gauge-st" value="4" min="0.5" max="30" step="0.5">
+          </div>
+          <div class="form-group">
+            <label for="np-gauge-rows">Rows per inch</label>
+            <input type="number" id="np-gauge-rows" value="5" min="0.5" max="30" step="0.5">
+          </div>
+        </div>
+        <!-- Size inputs — labels update with the chosen unit -->
+        <div class="form-row">
+          <div class="form-group">
+            <label id="np-width-label" for="new-project-width">Width (stitches)</label>
+            <input type="number" id="new-project-width" value="50" min="1" max="999" step="0.5">
+          </div>
+          <div class="form-group">
+            <label id="np-height-label" for="new-project-height">Height (rows)</label>
+            <input type="number" id="new-project-height" value="50" min="1" max="999" step="0.5">
+          </div>
+        </div>
+        <!-- Stitch count preview when using physical units -->
+        <div id="np-stitch-preview" class="hidden" style="font-size:0.82rem;color:var(--text-muted);margin-top:6px"></div>
+      </div>
+
+      <!-- Shown for garment templates -->
+      <div id="garment-panel-preview" class="garment-panel-preview hidden">
+        <!-- panel list rendered by JS -->
+      </div>
+
+      <div class="modal-actions">
+        <button id="btn-cancel-new-project" class="btn-secondary">Cancel</button>
+        <button id="btn-create-project" class="btn-primary">Create Project</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════
+       MODAL: Edit Color
+  ═══════════════════════════════════════════════ -->
+  <div id="modal-color-edit" class="modal-overlay hidden">
+    <div class="modal-box modal-box-sm">
+      <h2>Edit Color</h2>
+      <div class="color-preview-row">
+        <input type="color" id="color-edit-hex" class="color-picker-large">
+        <div id="color-edit-preview" class="color-large-preview"></div>
+      </div>
+      <div class="form-group">
+        <label for="color-edit-label">Label</label>
+        <input type="text" id="color-edit-label" maxlength="40" placeholder="e.g. Lion Brand Teal">
+      </div>
+      <div class="form-group">
+        <label for="color-edit-symbol">Symbol <span class="hint">(for B&amp;W printing)</span></label>
+        <input type="text" id="color-edit-symbol" maxlength="2" class="input-symbol" placeholder="○">
+      </div>
+      <div class="modal-actions">
+        <button id="btn-cancel-color" class="btn-secondary">Cancel</button>
+        <button id="btn-save-color" class="btn-primary">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════
+       MODAL: Keyboard Shortcuts
+  ═══════════════════════════════════════════════ -->
+  <div id="modal-shortcuts" class="modal-overlay hidden">
+    <div class="modal-box modal-box-shortcuts">
+      <div class="shortcuts-header">
+        <h2>Keyboard Shortcuts</h2>
+        <button id="btn-close-shortcuts" class="btn-icon-sm">&#10005;</button>
+      </div>
+      <div class="shortcuts-grid">
+        <div class="shortcut-group">
+          <h3>Tools</h3>
+          <div class="shortcut-row"><kbd>P</kbd><span>Pencil</span></div>
+          <div class="shortcut-row"><kbd>E</kbd><span>Eraser</span></div>
+          <div class="shortcut-row"><kbd>B</kbd><span>Fill Bucket</span></div>
+          <div class="shortcut-row"><kbd>I</kbd><span>Eyedropper</span></div>
+          <div class="shortcut-row"><kbd>S</kbd><span>Select Rectangle</span></div>
+        </div>
+        <div class="shortcut-group">
+          <h3>Edit</h3>
+          <div class="shortcut-row"><kbd>Ctrl Z</kbd><span>Undo</span></div>
+          <div class="shortcut-row"><kbd>Ctrl Y</kbd><span>Redo</span></div>
+          <div class="shortcut-row"><kbd>Ctrl S</kbd><span>Save</span></div>
+          <div class="shortcut-row"><kbd>Ctrl C</kbd><span>Copy selection</span></div>
+          <div class="shortcut-row"><kbd>Ctrl V</kbd><span>Paste at cursor</span></div>
+          <div class="shortcut-row"><kbd>Del</kbd><span>Clear selection</span></div>
+          <div class="shortcut-row"><kbd>H</kbd><span>Flip horizontal</span></div>
+          <div class="shortcut-row"><kbd>V</kbd><span>Flip vertical</span></div>
+        </div>
+        <div class="shortcut-group">
+          <h3>View</h3>
+          <div class="shortcut-row"><kbd>+</kbd><span>Zoom in</span></div>
+          <div class="shortcut-row"><kbd>-</kbd><span>Zoom out</span></div>
+          <div class="shortcut-row"><kbd>0</kbd><span>Fit to screen</span></div>
+          <div class="shortcut-row"><kbd>Space + drag</kbd><span>Pan canvas</span></div>
+          <div class="shortcut-row"><kbd>Middle drag</kbd><span>Pan canvas</span></div>
+          <div class="shortcut-row"><kbd>Scroll wheel</kbd><span>Zoom in / out</span></div>
+        </div>
+        <div class="shortcut-group">
+          <h3>Reading Mode</h3>
+          <div class="shortcut-row"><kbd>&#8593;</kbd><span>Previous row</span></div>
+          <div class="shortcut-row"><kbd>&#8595;</kbd><span>Next row</span></div>
+          <div class="shortcut-row"><kbd>Esc</kbd><span>Exit reading mode</span></div>
+        </div>
+        <div class="shortcut-group">
+          <h3>General</h3>
+          <div class="shortcut-row"><kbd>?</kbd><span>This shortcut list</span></div>
+          <div class="shortcut-row"><kbd>Esc</kbd><span>Close modal / deselect</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════
+       MODAL: Pattern Repeat Preview
+  ═══════════════════════════════════════════════ -->
+  <div id="modal-repeat" class="modal-overlay hidden">
+    <div class="modal-box modal-box-repeat">
+      <div class="repeat-header">
+        <h2>Pattern Repeat Preview</h2>
+        <div class="repeat-controls">
+          <label>Horizontal <input type="number" id="repeat-x" value="3" min="1" max="10"></label>
+          <label>Vertical <input type="number" id="repeat-y" value="3" min="1" max="10"></label>
+        </div>
+        <button id="btn-close-repeat" class="btn-icon-sm">&#10005;</button>
+      </div>
+      <div class="repeat-canvas-wrap">
+        <canvas id="repeat-canvas"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════
+       MODAL: Image Import
+  ═══════════════════════════════════════════════ -->
+  <div id="modal-import" class="modal-overlay hidden">
+    <div class="modal-box modal-box-import">
+      <div class="import-header">
+        <h2>Import Image</h2>
+        <button id="btn-close-import" class="btn-icon-sm">&#10005;</button>
+      </div>
+
+      <!-- Drop zone (shown before image is loaded) -->
+      <div id="import-dropzone" class="import-dropzone">
+        <div class="dropzone-inner">
+          <div class="dropzone-icon">&#128247;</div>
+          <p>Drag &amp; drop an image here</p>
+          <p class="dropzone-sub">or</p>
+          <label class="btn-primary" style="cursor:pointer">
+            Choose File
+            <input type="file" id="import-file-input" accept="image/*" style="display:none">
+          </label>
+          <p class="dropzone-sub" style="margin-top:10px;font-size:11px">PNG, JPG, WEBP supported</p>
+        </div>
+      </div>
+
+      <!-- Editor (shown after image is loaded) -->
+      <div id="import-editor" class="import-editor hidden">
+        <div class="import-previews">
+          <div class="import-preview-block">
+            <div class="import-preview-label">Original</div>
+            <canvas id="import-canvas-original" class="import-canvas-orig"></canvas>
+          </div>
+          <div class="import-arrow">&#8594;</div>
+          <div class="import-preview-block">
+            <div class="import-preview-label">Preview <span id="import-preview-dims"></span></div>
+            <canvas id="import-canvas-preview" class="import-canvas-preview"></canvas>
+          </div>
+        </div>
+
+        <div class="import-controls">
+          <!-- Fit-to-canvas toggle -->
+          <div class="import-fit-row">
+            <label class="import-fit-label">
+              <input type="checkbox" id="import-fit-canvas">
+              <span class="import-fit-text">
+                Fit to current canvas &mdash; <span id="import-fit-dims"></span>
+              </span>
+            </label>
+            <span class="import-fit-hint">keeps your gauge &amp; grid size</span>
+          </div>
+
+          <div class="import-controls-row">
+            <div class="form-group" style="flex:1">
+              <label for="import-width">Grid Width (stitches)</label>
+              <input type="number" id="import-width" min="5" max="300" value="50">
+            </div>
+            <div class="import-lock-wrap">
+              <label class="import-lock-label">
+                <input type="checkbox" id="import-lock-ratio" checked>
+                Lock ratio
+              </label>
+            </div>
+            <div class="form-group" style="flex:1">
+              <label for="import-height">Grid Height (rows)</label>
+              <input type="number" id="import-height" min="5" max="300" value="50">
+            </div>
+          </div>
+
+          <div class="import-controls-row">
+            <div class="form-group" style="flex:1">
+              <label for="import-colors">Number of Colors</label>
+              <div class="import-colors-row">
+                <input type="range" id="import-colors-range" min="2" max="20" value="8">
+                <span id="import-colors-val">8</span>
+              </div>
+            </div>
+            <div class="form-group" style="flex:1">
+              <label for="import-dither">Dithering</label>
+              <select id="import-dither">
+                <option value="none">None (solid blocks)</option>
+                <option value="floyd">Floyd-Steinberg</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="import-actions">
+            <button id="btn-import-reset" class="btn-secondary">&#8592; Choose Different Image</button>
+            <button id="btn-import-apply" class="btn-primary">Apply to Grid</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════
+       MODAL: Pattern & Instructions
+  ═══════════════════════════════════════════════ -->
+  <div id="modal-pattern" class="modal-overlay hidden">
+    <div class="modal-box modal-box-wide">
+      <div class="modal-pattern-header">
+        <h2>Pattern &amp; Instructions</h2>
+        <div class="modal-pattern-actions">
+          <button id="btn-pattern-print" class="btn-primary">Print / PDF</button>
+          <button id="btn-pattern-copy" class="btn-secondary">Copy All</button>
+          <button id="btn-close-pattern" class="btn-icon-sm">&#10005;</button>
+        </div>
+      </div>
+
+      <!-- Tab switcher -->
+      <div class="pattern-tabs">
+        <button class="pattern-tab active" data-ptab="instructions">Written Instructions</button>
+        <button class="pattern-tab" data-ptab="shaping">Shaping</button>
+      </div>
+
+      <!-- Tab: Written Instructions -->
+      <div class="modal-pattern-body" id="ptab-instructions">
+        <!-- Left: gauge + dimensions -->
+        <div class="pattern-sidebar">
+          <h3>Gauge</h3>
+          <div class="form-group">
+            <label for="gauge-stitches">Stitches / inch</label>
+            <input type="number" id="gauge-stitches" min="0.5" max="20" step="0.5" value="4">
+          </div>
+          <div class="form-group">
+            <label for="gauge-rows">Rows / inch</label>
+            <input type="number" id="gauge-rows" min="0.5" max="20" step="0.5" value="5">
+          </div>
+
+          <h3 style="margin-top:16px">Finished Size</h3>
+          <div id="dims-display" class="dims-display">
+            <div><span class="dims-label">Width</span><span id="dim-width" class="dims-value">—</span></div>
+            <div><span class="dims-label">Height</span><span id="dim-height" class="dims-value">—</span></div>
+          </div>
+
+          <h3 style="margin-top:16px">Color Summary</h3>
+          <div id="color-summary" class="color-summary">
+            <!-- filled by JS -->
+          </div>
+        </div>
+
+        <!-- Right: written instructions -->
+        <div class="pattern-instructions">
+          <div class="instructions-meta" id="instructions-meta"></div>
+          <div class="instructions-list" id="instructions-list">
+            <!-- filled by JS -->
+          </div>
+        </div>
+      </div>
+
+      <!-- Tab: Shaping Analysis -->
+      <div class="modal-pattern-body shaping-body hidden" id="ptab-shaping">
+        <div class="shaping-intro">
+          <p>Analyzes each row of the active panel to detect where increases or decreases are needed.
+             Shaping is based on the <strong>garment mask</strong> when one is defined, otherwise on
+             the leftmost and rightmost painted stitches in each row.</p>
+          <label class="checkbox-label shaping-changes-only-row">
+            <input type="checkbox" id="shaping-changes-only" checked>
+            Show only rows that require shaping
+          </label>
+        </div>
+        <div class="shaping-meta" id="shaping-meta"></div>
+        <div class="shaping-table-wrap">
+          <table class="shaping-table">
+            <thead>
+              <tr>
+                <th>Row</th>
+                <th>Stitches</th>
+                <th>Change</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody id="shaping-tbody">
+              <!-- filled by JS -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════
+       MODAL: Rename Project
+  ═══════════════════════════════════════════════ -->
+  <div id="modal-rename-project" class="modal-overlay hidden">
+    <div class="modal-box modal-box-sm">
+      <h2>Rename Project</h2>
+      <div class="form-group">
+        <label for="rename-project-input">Project Name</label>
+        <input type="text" id="rename-project-input" maxlength="80">
+      </div>
+      <div class="modal-actions">
+        <button id="btn-cancel-rename" class="btn-secondary">Cancel</button>
+        <button id="btn-confirm-rename" class="btn-primary">Rename</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════
+       MODAL: Swatch Calculator
+  ═══════════════════════════════════════════════ -->
+  <div id="modal-swatch" class="modal-overlay hidden">
+    <div class="modal-box modal-box-swatch">
+      <div class="swatch-calc-header">
+        <h2>Swatch Calculator</h2>
+        <button id="btn-close-swatch" class="btn-icon-sm">&#10005;</button>
+      </div>
+
+      <div class="swatch-calc-body">
+
+        <!-- ── Step 1: Swatch ────────────────────────── -->
+        <div class="swatch-section">
+          <h3 class="swatch-step-label">Step 1 — Measure Your Swatch</h3>
+
+          <div class="form-row" style="gap:12px">
+            <div class="form-group" style="flex:2">
+              <label for="swatch-stitch-type">Stitch Type</label>
+              <select id="swatch-stitch-type">
+                <option value="sc">Single Crochet (SC)</option>
+                <option value="hdc">Half Double Crochet (HDC)</option>
+                <option value="dc">Double Crochet (DC)</option>
+                <option value="tr">Treble Crochet (TR)</option>
+                <option value="slst">Slip Stitch</option>
+                <option value="tunisian">Tunisian Simple Stitch</option>
+                <option value="other">Other / Custom</option>
+              </select>
+            </div>
+            <div class="form-group" style="flex:1">
+              <label for="swatch-units">Units</label>
+              <select id="swatch-units">
+                <option value="in">inches</option>
+                <option value="cm">centimeters</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="swatch-dim-table">
+            <div class="swatch-dim-row">
+              <span class="swatch-dim-axis">Width</span>
+              <div class="swatch-input-pair">
+                <input type="number" id="swatch-w" class="input-swatch" min="0.5" max="100" step="0.5" value="4">
+                <span class="swatch-unit-lbl" data-unit-label></span>
+              </div>
+              <span class="swatch-dim-arrow">&#8594;</span>
+              <div class="form-group" style="margin:0">
+                <input type="number" id="swatch-stitches" class="input-swatch" min="1" max="999" step="1" value="16"
+                  title="Number of stitches across the swatch width">
+                <span class="swatch-count-lbl">stitches</span>
+              </div>
+            </div>
+            <div class="swatch-dim-row">
+              <span class="swatch-dim-axis">Height</span>
+              <div class="swatch-input-pair">
+                <input type="number" id="swatch-h" class="input-swatch" min="0.5" max="100" step="0.5" value="4">
+                <span class="swatch-unit-lbl" data-unit-label></span>
+              </div>
+              <span class="swatch-dim-arrow">&#8594;</span>
+              <div class="form-group" style="margin:0">
+                <input type="number" id="swatch-rows" class="input-swatch" min="1" max="999" step="1" value="20"
+                  title="Number of rows in the swatch height">
+                <span class="swatch-count-lbl">rows</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="swatch-gauge-box" id="swatch-gauge-box">
+            <!-- filled by JS -->
+          </div>
+        </div>
+
+        <div class="swatch-section-divider"></div>
+
+        <!-- ── Step 2: Target finished size ─────────── -->
+        <div class="swatch-section">
+          <h3 class="swatch-step-label">Step 2 — Desired Finished Size</h3>
+
+          <div class="swatch-dim-table">
+            <div class="swatch-dim-row">
+              <span class="swatch-dim-axis">Width</span>
+              <div class="swatch-input-pair">
+                <input type="number" id="swatch-target-w" class="input-swatch" min="1" max="999" step="1" value="12">
+                <span class="swatch-unit-lbl" data-unit-label></span>
+              </div>
+              <span class="swatch-dim-arrow">&#8594;</span>
+              <div class="swatch-out-block">
+                <span class="swatch-out-val" id="swatch-out-cols">—</span>
+                <span class="swatch-out-unit">stitches wide</span>
+              </div>
+            </div>
+            <div class="swatch-dim-row">
+              <span class="swatch-dim-axis">Height</span>
+              <div class="swatch-input-pair">
+                <input type="number" id="swatch-target-h" class="input-swatch" min="1" max="999" step="1" value="14">
+                <span class="swatch-unit-lbl" data-unit-label></span>
+              </div>
+              <span class="swatch-dim-arrow">&#8594;</span>
+              <div class="swatch-out-block">
+                <span class="swatch-out-val" id="swatch-out-rows">—</span>
+                <span class="swatch-out-unit">rows tall</span>
+              </div>
+            </div>
+          </div>
+
+          <label class="swatch-lock-row">
+            <input type="checkbox" id="swatch-lock-ratio">
+            Lock aspect ratio (edits to width or height auto-scale the other)
+          </label>
+
+          <p class="swatch-note" id="swatch-note"></p>
+        </div>
+
+      </div><!-- /.swatch-calc-body -->
+
+      <div class="swatch-calc-actions">
+        <button id="btn-swatch-apply-gauge" class="btn-secondary"
+          title="Save gauge (stitches/inch and rows/inch) to this project">Apply Gauge</button>
+        <button id="btn-swatch-apply-resize" class="btn-secondary"
+          title="Resize the grid canvas to the calculated dimensions">Resize Grid</button>
+        <button id="btn-swatch-apply-both" class="btn-primary"
+          title="Apply gauge and resize the grid">Apply Both</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════
+       MODAL: Add Panel
+  ═══════════════════════════════════════════════ -->
+  <div id="modal-add-panel" class="modal-overlay hidden">
+    <div class="modal-box modal-box-add-panel">
+      <h2>Add Panel</h2>
+      <div class="form-group">
+        <label for="add-panel-name">Panel Name</label>
+        <input type="text" id="add-panel-name" value="New Panel" maxlength="40">
+      </div>
+      <h3 style="margin:14px 0 8px">Shape</h3>
+      <div id="add-panel-shape-picker" class="garment-picker">
+        <!-- shape cards rendered by JS -->
+      </div>
+      <div id="add-panel-size-fields" class="form-row" style="margin-top:12px">
+        <div class="form-group">
+          <label for="add-panel-width">Width (stitches)</label>
+          <input type="number" id="add-panel-width" value="50" min="5" max="300">
+        </div>
+        <div class="form-group">
+          <label for="add-panel-height">Height (rows)</label>
+          <input type="number" id="add-panel-height" value="50" min="5" max="300">
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button id="btn-cancel-add-panel" class="btn-secondary">Cancel</button>
+        <button id="btn-confirm-add-panel" class="btn-primary">Add Panel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════
+       MODAL: Layout View
+  ═══════════════════════════════════════════════ -->
+  <div id="modal-layout" class="modal-overlay hidden">
+    <div class="modal-box modal-box-layout">
+      <div class="layout-header">
+        <h2>Layout View</h2>
+        <button id="btn-close-layout" class="btn-icon-sm">&#10005;</button>
+      </div>
+      <p class="layout-hint">Click a panel to switch to it.</p>
+      <div id="layout-panels" class="layout-panels">
+        <!-- rendered by JS -->
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════
+       MODAL: Expand Canvas
+  ═══════════════════════════════════════════════ -->
+  <div id="modal-expand" class="modal-overlay hidden">
+    <div class="modal-box modal-box-sm">
+      <h2>Expand Canvas</h2>
+
+      <p style="font-size:0.85rem;color:var(--text-muted);margin:0 0 14px">
+        Add empty rows or columns to one side. The existing design stays in place; no pixels are moved or scaled.
+      </p>
+
+      <div class="form-group" style="margin-bottom:14px">
+        <label>Add to which side?</label>
+        <div class="expand-side-picker" id="expand-side-picker">
+          <div class="esp-row">
+            <div></div>
+            <button class="esp-btn esp-btn-top" data-side="top">Top</button>
+            <div></div>
+          </div>
+          <div class="esp-row">
+            <button class="esp-btn esp-btn-left" data-side="left">Left</button>
+            <div class="esp-canvas-icon">&#9638;</div>
+            <button class="esp-btn esp-btn-right" data-side="right">Right</button>
+          </div>
+          <div class="esp-row">
+            <div></div>
+            <button class="esp-btn esp-btn-bottom" data-side="bottom">Bottom</button>
+            <div></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="expand-count" id="expand-count-label">Rows to add</label>
+        <input type="number" id="expand-count" min="1" max="250" value="5">
+      </div>
+
+      <div class="modal-actions" style="margin-top:18px">
+        <button id="btn-cancel-expand" class="btn-secondary">Cancel</button>
+        <button id="btn-confirm-expand" class="btn-primary">Expand</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Scripts (order matters — dependencies first) -->
+  <script src="js/model.js"></script>
+  <script src="js/templates.js"></script>
+  <script src="js/storage.js"></script>
+  <script src="js/tools.js"></script>
+  <script src="js/renderer.js"></script>
+  <script src="js/interaction.js"></script>
+  <script src="js/palette.js"></script>
+  <script src="js/instructions.js"></script>
+  <script src="js/image-import.js"></script>
+  <script src="js/export.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
