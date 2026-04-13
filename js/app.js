@@ -1137,22 +1137,72 @@
       _renderShapePicker(container, id => { _selectedAddPanelShapeId = id; }, 'blank');
     }
     document.getElementById('add-panel-name').value = 'Panel ' + (currentProject.panels.length + 1);
+
+    // Pre-fill size from current panel
+    if (currentPanel) {
+      document.getElementById('add-panel-width').value  = currentPanel.grid.width;
+      document.getElementById('add-panel-height').value = currentPanel.grid.height;
+    }
+
+    // Reset copy checkbox
+    const copyChk  = document.getElementById('add-panel-copy-canvas');
+    const copyNote = document.getElementById('add-panel-copy-note');
+    if (copyChk) copyChk.checked = false;
+    if (copyNote) copyNote.classList.add('hidden');
+    _updateAddPanelCopyState();
+
     modal.classList.remove('hidden');
   }
 
-  function _confirmAddPanel() {
-    const modal  = document.getElementById('modal-add-panel');
-    const name   = document.getElementById('add-panel-name').value.trim() || ('Panel ' + (currentProject.panels.length + 1));
-    const width  = parseInt(document.getElementById('add-panel-width').value) || 40;
-    const height = parseInt(document.getElementById('add-panel-height').value) || 50;
-    const shapeId = _selectedAddPanelShapeId || 'blank';
+  function _updateAddPanelCopyState() {
+    const checked   = document.getElementById('add-panel-copy-canvas')?.checked ?? false;
+    const copyNote  = document.getElementById('add-panel-copy-note');
+    const wInput    = document.getElementById('add-panel-width');
+    const hInput    = document.getElementById('add-panel-height');
+    const shapePicker = document.getElementById('add-panel-shape-picker');
 
-    let mask = null;
-    if (shapeId !== 'blank') {
-      mask = CrochetApp.Templates.generateMask(shapeId, width, height);
+    if (copyNote)    copyNote.classList.toggle('hidden', !checked);
+    if (wInput)      wInput.disabled = checked;
+    if (hInput)      hInput.disabled = checked;
+    // When copying, shape picker is irrelevant — dim it
+    if (shapePicker) shapePicker.style.opacity = checked ? '0.4' : '1';
+    if (shapePicker) shapePicker.style.pointerEvents = checked ? 'none' : '';
+
+    if (checked && currentPanel) {
+      if (wInput) wInput.value = currentPanel.grid.width;
+      if (hInput) hInput.value = currentPanel.grid.height;
+    }
+  }
+
+  function _confirmAddPanel() {
+    const modal      = document.getElementById('modal-add-panel');
+    const name       = document.getElementById('add-panel-name').value.trim() || ('Panel ' + (currentProject.panels.length + 1));
+    const copyCanvas = document.getElementById('add-panel-copy-canvas')?.checked ?? false;
+    const shapeId    = _selectedAddPanelShapeId || 'blank';
+
+    let width, height, mask, cells;
+
+    if (copyCanvas && currentPanel) {
+      // Use the current panel's exact dimensions and copy its cells + mask
+      width  = currentPanel.grid.width;
+      height = currentPanel.grid.height;
+      cells  = currentPanel.grid.cells.slice();
+      mask   = currentPanel.grid.mask ? currentPanel.grid.mask.slice() : null;
+    } else {
+      width  = parseInt(document.getElementById('add-panel-width').value)  || 40;
+      height = parseInt(document.getElementById('add-panel-height').value) || 50;
+      if (shapeId !== 'blank') {
+        mask = CrochetApp.Templates.generateMask(shapeId, width, height);
+      }
     }
 
-    const panel = CrochetApp._createPanel({ name, shapeId, width, height, mask });
+    const panel = CrochetApp._createPanel({ name, shapeId: copyCanvas ? (currentPanel?.shapeId || 'blank') : shapeId, width, height, mask });
+
+    // Overwrite the freshly-created blank cells with the copied ones
+    if (copyCanvas && cells) {
+      panel.grid.cells = cells;
+    }
+
     currentProject.panels.push(panel);
     if (modal) modal.classList.add('hidden');
 
@@ -1173,6 +1223,9 @@
       addModal.addEventListener('click', e => {
         if (e.target === e.currentTarget) addModal.classList.add('hidden');
       });
+
+      document.getElementById('add-panel-copy-canvas')
+        ?.addEventListener('change', _updateAddPanelCopyState);
     }
 
     // Layout view modal close

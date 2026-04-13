@@ -1734,3 +1734,5 @@ body.dark .garment-card.active { background: rgba(124,92,191,0.20); }
   cursor: pointer;
   user-select: none;
 }
+
+.add-panel-copy-note { font-size: 0.8rem; color: var(--accent); margin: 2px 0 0 22px; }
