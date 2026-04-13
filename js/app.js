@@ -34,8 +34,9 @@
 
   // Garment / panel state
   let shapeEditMode   = false;
-  let _selectedGarmentId   = 'blank'; // tracks picker selection in new-project modal
+  let _selectedGarmentId       = 'blank'; // tracks picker selection in new-project modal
   let _selectedAddPanelShapeId = 'blank'; // tracks shape picker in add-panel modal
+  let _selectedStarterPatternId = 'none'; // tracks starter pattern selection
 
   // Module instances (created once, reused across projects)
   let renderer    = null;
@@ -1280,11 +1281,13 @@
       const card = document.createElement('div');
       card.className = 'garment-card' + (g.id === _selectedGarmentId ? ' selected' : '');
       card.dataset.id = g.id;
-      card.textContent = g.label;
+      card.textContent = g.name || g.label || g.id;
       card.addEventListener('click', () => {
         container.querySelectorAll('.garment-card').forEach(c => c.classList.remove('selected'));
         card.classList.add('selected');
         _selectedGarmentId = g.id;
+        _selectedStarterPatternId = 'none'; // reset pattern selection on garment change
+        _renderStarterPatternPicker(g.id);
         // Toggle blank-size-fields visibility
         const sizeFields = document.getElementById('blank-size-fields');
         if (sizeFields) {
@@ -1302,6 +1305,44 @@
             preview.classList.add('hidden');
           }
         }
+      });
+      container.appendChild(card);
+    });
+  }
+
+  function _renderStarterPatternPicker(garmentId) {
+    const container = document.getElementById('starter-pattern-picker');
+    if (!container || !CrochetApp.StarterPatterns) return;
+
+    // Filter patterns to those relevant to this garment (or tagged 'all')
+    const all = CrochetApp.StarterPatterns.ALL;
+    const patterns = all.filter(p =>
+      p.tags.includes('all') || p.tags.includes(garmentId)
+    );
+
+    container.innerHTML = '';
+    patterns.forEach(p => {
+      const card = document.createElement('div');
+      card.className = 'sp-card' + (p.id === _selectedStarterPatternId ? ' selected' : '');
+      card.dataset.id = p.id;
+      card.title = p.desc;
+
+      const cvs = document.createElement('canvas');
+      cvs.className = 'sp-thumb';
+      cvs.width  = 60;
+      cvs.height = 60;
+      CrochetApp.StarterPatterns.thumbnail(p.id, cvs, 30, 30);
+
+      const label = document.createElement('div');
+      label.className = 'sp-label';
+      label.textContent = p.name;
+
+      card.appendChild(cvs);
+      card.appendChild(label);
+      card.addEventListener('click', () => {
+        container.querySelectorAll('.sp-card').forEach(c => c.classList.remove('selected'));
+        card.classList.add('selected');
+        _selectedStarterPatternId = p.id;
       });
       container.appendChild(card);
     });
@@ -2091,7 +2132,9 @@
 
   function _openNewProjectModal() {
     _selectedGarmentId = 'blank';
+    _selectedStarterPatternId = 'none';
     _renderGarmentPicker();
+    _renderStarterPatternPicker('blank');
     const sizeFields = document.getElementById('blank-size-fields');
     if (sizeFields) sizeFields.classList.remove('hidden');
     const preview = document.getElementById('garment-panel-preview');
@@ -2187,6 +2230,25 @@
       if (width  < 5 || width  > 300) { alert('Width resolves to ' + width + ' stitches — must be between 5 and 300.'); return; }
       if (height < 5 || height > 300) { alert('Height resolves to ' + height + ' rows — must be between 5 and 300.'); return; }
       project = CrochetApp.createProject({ name, width, height, technique, garmentId: 'blank' });
+    }
+
+    // Apply starter pattern to every panel if one was chosen
+    if (_selectedStarterPatternId && _selectedStarterPatternId !== 'none' && CrochetApp.StarterPatterns) {
+      project.panels.forEach(panel => {
+        const result = CrochetApp.StarterPatterns.generate(
+          _selectedStarterPatternId,
+          panel.grid.width,
+          panel.grid.height
+        );
+        if (result) {
+          panel.grid.cells = result.cells;
+          // Replace the default 2-color palette with the pattern's palette
+          // (only do this on the first panel to avoid overwriting a shared palette)
+          if (panel === project.panels[0]) {
+            project.palette = result.palette;
+          }
+        }
+      });
     }
 
     await CrochetApp.Storage.saveProject(project);

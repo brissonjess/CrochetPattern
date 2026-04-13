@@ -274,6 +274,12 @@
         <!-- panel list rendered by JS -->
       </div>
 
+      <h3 style="margin:16px 0 6px">Starter Pattern <span style="font-size:0.78rem;font-weight:400;color:var(--text-muted)">(optional)</span></h3>
+      <p style="font-size:0.8rem;color:var(--text-muted);margin:0 0 10px">Pick a pattern to pre-fill your canvas. You can edit it freely once the project opens.</p>
+      <div id="starter-pattern-picker" class="starter-pattern-picker">
+        <!-- cards rendered by JS -->
+      </div>
+
       <div class="modal-actions">
         <button id="btn-cancel-new-project" class="btn-secondary">Cancel</button>
         <button id="btn-create-project" class="btn-primary">Create Project</button>
@@ -803,6 +809,7 @@
   <!-- Scripts (order matters — dependencies first) -->
   <script src="js/model.js"></script>
   <script src="js/templates.js"></script>
+  <script src="js/starter-patterns.js"></script>
   <script src="js/storage.js"></script>
   <script src="js/tools.js"></script>
   <script src="js/renderer.js"></script>
